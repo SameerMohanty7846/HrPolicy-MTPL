@@ -5,6 +5,7 @@ import { sequelize } from './models/index.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import cookieParser from 'cookie-parser';
+import authRoutes from "./routes/AuthRoutes.js"
 
 
 
@@ -25,6 +26,10 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use(express.static(path.join(__dirname, '../public')));
+
+
+app.use('/api/auth', authRoutes);
+
 
 
 
@@ -51,3 +56,11 @@ const startServer = async () => {
 };
 
 startServer();
+
+
+
+
+
+
+
+
