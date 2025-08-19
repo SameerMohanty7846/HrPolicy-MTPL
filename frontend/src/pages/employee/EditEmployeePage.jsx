@@ -1,0 +1,216 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+// import apiClient from '@/api/axiosConfig';
+// import { toast } from 'sonner';
+import { FaUserEdit, FaTimes, FaSave, FaSpinner, FaExclamationTriangle, FaUpload, FaTrash } from 'react-icons/fa';
+
+// --- Mock Components / Data (इन्हें अपने वास्तविक इम्पोर्ट से बदलें) ---
+const apiClient = {
+  get: (url) => Promise.resolve({ data: { id: 1, name: 'Jane Doe', email: 'jane@example.com', phone: '123-456-7890', address: '123 Main St', picture: 'https://via.placeholder.com/150' } }),
+  put: (url, data) => { console.log('Updating with:', Object.fromEntries(data.entries())); return Promise.resolve(); }
+};
+const toast = { success: console.log, error: console.error };
+const apiBaseUrl = ''; // process.meta.env.API_URL...
+// --- End Mocks ---
+
+// ImageUploader कंपोनेंट का एक स्टाइल किया हुआ संस्करण
+const ImageUploader = ({ defaultImage, onFileSelect }) => {
+  const [preview, setPreview] = useState(defaultImage);
+  const [fileName, setFileName] = useState('');
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      onFileSelect(file);
+      setFileName(file.name);
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleRemoveImage = () => {
+    setPreview(null);
+    setFileName('');
+    onFileSelect(null); // 'null' भेजकर इंगित करें कि इमेज हटाई जानी है
+  };
+
+  return (
+    <div className="mt-2 flex items-center gap-6">
+      <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-dashed">
+        {preview ? (
+          <img src={preview} alt="Profile Preview" className="w-full h-full object-cover" />
+        ) : (
+          <FaUserEdit className="text-gray-400 text-4xl" />
+        )}
+      </div>
+      <div className="flex flex-col gap-3">
+        <label htmlFor="picture-upload" className="cursor-pointer bg-white text-gray-700 font-semibold px-5 py-2.5 border border-gray-300 rounded-full shadow-sm hover:bg-gray-50 transition-colors inline-flex items-center">
+          <FaUpload className="inline mr-2" />
+          {preview ? 'Change Image' : 'Upload Image'}
+        </label>
+        <input id="picture-upload" type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+        {preview && (
+            <button type="button" onClick={handleRemoveImage} className="text-red-600 font-semibold hover:text-red-800 transition-colors inline-flex items-center">
+                <FaTrash className="inline mr-2" />
+                Remove Image
+            </button>
+        )}
+        {fileName && <p className="text-sm text-gray-500">{fileName}</p>}
+      </div>
+    </div>
+  );
+};
+
+
+const EditEmployeePage = () => {
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const [profileData, setProfileData] = useState({ name: '', email: '', phone: '', address:'', picture: null });
+    const [pictureFile, setPictureFile] = useState(null);
+    const [shouldRemovePicture, setShouldRemovePicture] = useState(false);
+    const [loading, setLoading] = useState({ page: true, saving: false });
+    const [error, setError] = useState(''); // एरर के लिए स्टेट
+
+    useEffect(() => {
+        const fetchEmployee = async () => {
+            try {
+                const res = await apiClient.get(`/employees/${id}`);
+                setProfileData(res.data);
+            } catch (err) {
+                toast.error("Failed to load employee data for editing.");
+                navigate('/employees');
+            } finally {
+                setLoading(prev => ({ ...prev, page: false }));
+            }
+        };
+        fetchEmployee();
+    }, [id, navigate]);
+
+    const handleChange = (e) => {
+        setProfileData({ ...profileData, [e.target.name]: e.target.value });
+    };
+
+    const handleFileSelected = (file) => {
+        if (file) {
+            setPictureFile(file);
+            setShouldRemovePicture(false);
+        } else {
+            setPictureFile(null);
+            setShouldRemovePicture(true);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError(''); // पिछला एरर साफ़ करें
+        setLoading(prev => ({ ...prev, saving: true }));
+
+        const formData = new FormData();
+        formData.append('name', profileData.name);
+        formData.append('email', profileData.email);
+        formData.append('phone', profileData.phone || '');
+        formData.append('address', profileData.address || '');
+        if (pictureFile) formData.append('picture', pictureFile);
+        if (shouldRemovePicture) formData.append('removePicture', 'true');
+        
+        try {
+            await apiClient.put(`/employees/${id}`, formData);
+            toast.success("Employee profile updated successfully!");
+            navigate('/employees');
+        } catch (err) {
+            const errorMessage = err.response?.data?.message || "Failed to update employee profile.";
+            setError(errorMessage);
+            toast.error(errorMessage);
+        } finally {
+            setLoading(prev => ({ ...prev, saving: false }));
+        }
+    };
+    
+    if (loading.page) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-gray-50">
+                <FaSpinner className="text-5xl text-blue-600 animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-gray-50 min-h-screen py-12 px-4">
+            <div className="container mx-auto max-w-4xl">
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                    {/* Header Section */}
+                    <div className="p-8 border-b border-gray-200">
+                        <div className="flex items-center space-x-4">
+                            <div className="bg-blue-100 p-3 rounded-full">
+                                <FaUserEdit className="text-blue-600 text-2xl" />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-gray-800">Edit Employee Profile</h2>
+                                <p className="text-gray-500 mt-1">Update the details for {profileData.name}.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Form Section */}
+                    <form onSubmit={handleSubmit}>
+                        <div className="p-8 space-y-8">
+                            <div>
+                                <label className="text-lg font-semibold text-gray-700">Profile Picture</label>
+                                <ImageUploader 
+                                    defaultImage={profileData.picture ? `${apiBaseUrl}${profileData.picture}` : null} 
+                                    onFileSelect={handleFileSelected} 
+                                />
+                            </div>
+
+                            <hr/>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label htmlFor="name" className="font-semibold text-gray-700">Full Name</label>
+                                    <input id="name" name="name" value={profileData.name} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="email" className="font-semibold text-gray-700">Email Address</label>
+                                    <input id="email" type="email" name="email" value={profileData.email} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="phone" className="font-semibold text-gray-700">Phone</label>
+                                    <input id="phone" name="phone" value={profileData.phone || ''} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label htmlFor="address" className="font-semibold text-gray-700">Address</label>
+                                <textarea id="address" name="address" value={profileData.address || ''} onChange={handleChange} rows="3" className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md flex items-start space-x-3">
+                                    <FaExclamationTriangle className="text-red-500 text-xl mt-1" />
+                                    <div>
+                                        <h3 className="font-bold text-red-800">Error</h3>
+                                        <p className="text-red-700">{error}</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer and Action Buttons */}
+                        <div className="bg-gray-50 px-8 py-5 flex justify-end items-center space-x-4">
+                            <button type="button" onClick={() => navigate('/employees')} disabled={loading.saving} className="px-8 py-3 font-semibold text-gray-600 bg-gray-200 rounded-full hover:bg-gray-300 transition-colors">
+                                <FaTimes className="inline mr-2" /> Cancel
+                            </button>
+                            <button type="submit" disabled={loading.saving} className="flex items-center justify-center bg-blue-600 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors transform hover:scale-105 disabled:bg-blue-400 disabled:scale-100">
+                                {loading.saving ? <FaSpinner className="animate-spin mr-2" /> : <FaSave className="mr-2" />}
+                                {loading.saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default EditEmployeePage;

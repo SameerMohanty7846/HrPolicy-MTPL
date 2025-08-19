@@ -4,7 +4,7 @@ import { Op } from "sequelize";
 import path from "path";
 import fs from "fs";
 import { randomBytes } from 'crypto'; 
-import { sendInvitationEmail } from '../utils/emailService.js'; 
+import { sendInvitationEmail } from '../../utils/emailService.js'; 
 
 const Employee = sequelize.models.Employee;
 
