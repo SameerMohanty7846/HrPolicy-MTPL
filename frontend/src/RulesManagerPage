@@ -1,0 +1,145 @@
+import React, { useState, useEffect, useCallback } from 'react';
+// import { toast } from 'sonner';
+
+// Mock Services and Components (इन्हें अपने वास्तविक कोड से बदलें)
+// import { getLeaveTypes, getCompanyRules } from '@/services/rules-service';
+// import useAuth from '@/hooks/useAuth';
+// import { PERMISSIONS } from '@/config/permissions';
+// import AccessDenied from '@/components/AccessDenied';
+
+// --- Icons ---
+import { FaGavel, FaBook, FaCalendarTimes, FaBuilding, FaSpinner } from 'react-icons/fa';
+
+// --- Mocks (Placeholders for actual imports) ---
+const useAuth = () => ({ user: { is_master: true, permissions: [] } });
+const AccessDenied = () => <div className="p-8">Access Denied</div>;
+const PERMISSIONS = { PAGES: { RULES_MANAGEMENT: 'rules_page' } };
+const toast = { error: console.error };
+const getLeaveTypes = () => Promise.resolve([{ id: 1, name: 'Annual Leave' }]);
+const getCompanyRules = () => Promise.resolve([{ id: 1, rule: 'Working Hours' }]);
+
+// Placeholder for child components
+const LeaveTypesManager = ({ leaveTypes, onDataChange }) => (
+  <div className="p-4 border bg-gray-50 rounded-lg">
+    <h3 className="font-bold text-lg">Leave Types Data</h3>
+    <pre className="text-sm mt-2">{JSON.stringify(leaveTypes, null, 2)}</pre>
+    <button onClick={onDataChange} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Reload Data</button>
+  </div>
+);
+
+const CompanyRulesManager = ({ rules, onDataChange }) => (
+  <div className="p-4 border bg-gray-50 rounded-lg">
+    <h3 className="font-bold text-lg">Company Rules Data</h3>
+    <pre className="text-sm mt-2">{JSON.stringify(rules, null, 2)}</pre>
+     <button onClick={onDataChange} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">Reload Data</button>
+  </div>
+);
+// --- End Mocks ---
+
+
+const RulesManagerPage = () => {
+    const [leaveTypes, setLeaveTypes] = useState([]);
+    const [companyRules, setCompanyRules] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('leave-types'); // Tab state
+    const { user } = useAuth();
+
+    const canViewPage = user.is_master || user.permissions.includes(PERMISSIONS.PAGES.RULES_MANAGEMENT);
+
+    const fetchData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [leaveTypesData, companyRulesData] = await Promise.all([
+                getLeaveTypes(),
+                getCompanyRules()
+            ]);
+            setLeaveTypes(leaveTypesData);
+            setCompanyRules(companyRulesData);
+        } catch (error) {
+            toast.error("Failed to load settings", { description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (canViewPage) {
+            fetchData();
+        } else {
+            setIsLoading(false);
+        }
+    }, [fetchData, canViewPage]);
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen bg-gray-50">
+                <FaSpinner className="text-5xl text-blue-600 animate-spin" />
+            </div>
+        );
+    }
+    
+    if (!canViewPage) return <AccessDenied />;
+
+    return (
+        <div className="bg-gray-50 min-h-screen py-12 px-4">
+            <div className="container mx-auto">
+                {/* Page Header */}
+                <header className="mb-8">
+                    <h1 className="text-4xl font-bold text-gray-800">Rules Management</h1>
+                    <p className="text-gray-500 mt-1">Manage global rules and leave policies for the entire organization.</p>
+                </header>
+
+                {/* Tab Navigation */}
+                <div className="flex border-b border-gray-200 mb-6">
+                    <button
+                        onClick={() => setActiveTab('leave-types')}
+                        className={`flex items-center space-x-2 px-6 py-3 font-semibold text-lg transition-colors ${activeTab === 'leave-types' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                        <FaCalendarTimes />
+                        <span>Leave Types</span>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('company-rules')}
+                        className={`flex items-center space-x-2 px-6 py-3 font-semibold text-lg transition-colors ${activeTab === 'company-rules' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-800'}`}
+                    >
+                        <FaBuilding />
+                        <span>Company Rules</span>
+                    </button>
+                </div>
+
+                {/* Tab Content */}
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                    {activeTab === 'leave-types' && (
+                        <div>
+                            <div className="p-8 border-b border-gray-200">
+                                <h2 className="text-2xl font-bold text-gray-800">Leave Type Management</h2>
+                                <p className="text-gray-600 mt-1 max-w-3xl">
+                                    Create, edit, or delete the types of leave employees can request. Define allowances and behaviors for each type.
+                                </p>
+                            </div>
+                            <div className="p-8">
+                                <LeaveTypesManager leaveTypes={leaveTypes} onDataChange={fetchData} />
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'company-rules' && (
+                        <div>
+                           <div className="p-8 border-b border-gray-200">
+                                <h2 className="text-2xl font-bold text-gray-800">Company Rules Management</h2>
+                                <p className="text-gray-600 mt-1 max-w-3xl">
+                                    Define and manage general company-wide rules and policies.
+                                </p>
+                            </div>
+                            <div className="p-8">
+                                <CompanyRulesManager rules={companyRules} onDataChange={fetchData} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default RulesManagerPage;
