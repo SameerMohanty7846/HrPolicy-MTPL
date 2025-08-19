@@ -1,4 +1,4 @@
-import sequelize from "../config/Database.js"
+import sequelize from "../../config/Database.js"
 import defineEmployeeModel from "./Employee.js"
 
 defineEmployeeModel(sequelize);

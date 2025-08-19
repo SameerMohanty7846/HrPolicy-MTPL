@@ -1,11 +1,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { sequelize } from './models/index.js'; 
+import { sequelize } from './src/models/index.js'; 
 import { fileURLToPath } from 'url';
 import path from 'path';
 import cookieParser from 'cookie-parser';
-import authRoutes from "./routes/AuthRoutes.js"
+import authRoutes from "./src/routes/AuthRoutes.js"
+import employeeRoutes from "./src/routes/EmployeeRoutes.js"
 
 
 
@@ -29,6 +30,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 
 app.use('/api/auth', authRoutes);
+app.use('/api/employee', employeeRoutes  )
 
 
 
