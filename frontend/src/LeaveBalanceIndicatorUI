@@ -1,0 +1,183 @@
+import React from 'react';
+import { FaCalendarAlt, FaBed, FaExclamationTriangle, FaChartPie } from 'react-icons/fa';
+
+// --- UI-ONLY MOCK DATA ---
+// Backend se aane wale props ki jagah hum yeh static data use kar rahe hain.
+const mockData = {
+    balanceDetails: [
+        { id: 1, name: 'Sick Leave', monthly_allowance: 2, taken: 1, is_unpaid: false },
+        { id: 2, name: 'Casual Leave', monthly_allowance: 1, taken: 0, is_unpaid: false },
+        { id: 3, name: 'Unpaid Leave', monthly_allowance: null, taken: 2, is_unpaid: true },
+    ],
+    unpaidLeaveBalance: {
+        takenThisMonth: 1,
+        takenThisYear: 5,
+    },
+    annualBalance: {
+        allowance: 20,
+        taken: 8,
+        remaining: 12,
+    },
+};
+
+// --- UI-ONLY COMPONENTS ---
+
+// Loading state component remains the same as it's pure UI.
+const LoadingSkeleton = () => {
+    const SkeletonCard = () => (
+        <div className="bg-gray-100 rounded-xl p-6 animate-pulse">
+            <div className="h-6 w-1/2 bg-gray-300 rounded-md mb-4"></div>
+            <div className="space-y-3">
+                <div className="h-4 w-3/4 bg-gray-300 rounded-md"></div>
+                <div className="h-8 w-1/3 bg-gray-300 rounded-md"></div>
+                <div className="h-4 w-1/2 bg-gray-300 rounded-md"></div>
+            </div>
+        </div>
+    );
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+        </div>
+    );
+};
+
+// Main Component with Advanced UI (UI-ONLY VERSION)
+const LeaveBalanceIndicatorUI = () => {
+  // --- BACKEND LOGIC (COMMENTED OUT) ---
+  // const t = useT();
+  
+  // UI-ONLY: Create a mock translation function.
+  // This function converts a key like 'monthly-leaves-remaining' into 'Monthly Leaves Remaining'
+  const t = (key) => key.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+  // Use the mock data defined above instead of props.
+  const { balanceDetails, unpaidLeaveBalance, annualBalance } = mockData;
+
+  // You can set this to true to test the loading state.
+  const isLoading = false; 
+
+  if (isLoading || !balanceDetails || !unpaidLeaveBalance || !annualBalance) {
+    return <LoadingSkeleton />;
+  }
+
+  // The rest of the logic is pure UI and remains unchanged.
+  const relevantLeaveTypes = balanceDetails.filter(
+    (detail) => detail.monthly_allowance !== null || detail.is_unpaid,
+  );
+
+  const annualUsedPercentage = annualBalance.allowance > 0 
+    ? (annualBalance.taken / annualBalance.allowance) * 100 
+    : 0;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+      
+      {/* Card 1: Monthly Balances */}
+      <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+        <div className="flex items-center space-x-3 mb-4">
+            <FaBed className="text-2xl text-blue-600" />
+            <h3 className="text-xl font-bold text-gray-800">{t('monthly-leaves-remaining')}</h3>
+        </div>
+        <div className="space-y-4 flex-grow">
+          {relevantLeaveTypes.map((balance) => (
+            <div key={balance.id} className="p-4 bg-blue-50 rounded-lg">
+              <p className="font-semibold text-gray-700">{balance.name}</p>
+              <div className="flex justify-between items-center mt-1">
+                <span className="text-sm text-gray-500">{t('taken')}: {balance.taken ?? "N/A"} / {balance.monthly_allowance ?? "N/A"}</span>
+                <span className="text-lg font-bold text-blue-700">
+                  {balance?.monthly_allowance != null && balance?.taken != null
+                    ? balance.monthly_allowance - balance.taken
+                    : "N/A"} {t('remaining')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Card 2: Unpaid & Annual Paid Leave */}
+      <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
+        {/* Unpaid Leave Section */}
+        <div>
+            <div className="flex items-center space-x-3 mb-4">
+                <FaExclamationTriangle className="text-2xl text-amber-500" />
+                <h3 className="text-xl font-bold text-gray-800">{t('unpaid-leave-taken')}</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-center">
+                <div>
+                    <p className="text-3xl font-extrabold text-amber-600">{unpaidLeaveBalance.takenThisMonth}</p>
+                    <p className="text-sm text-gray-500">{t('this-month')}</p>
+                </div>
+                <div>
+                    <p className="text-3xl font-extrabold text-gray-700">{unpaidLeaveBalance.takenThisYear}</p>
+                    <p className="text-sm text-gray-500">{t('this-year')}</p>
+                </div>
+            </div>
+        </div>
+
+        <hr/>
+
+        {/* Annual Paid Leave Section */}
+        <div>
+            <div className="flex items-center space-x-3 mb-4">
+                <FaCalendarAlt className="text-2xl text-green-600" />
+                <h3 className="text-xl font-bold text-gray-800">{t('total-paid-leave-annual')}</h3>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <p className="text-3xl font-extrabold text-gray-700">{annualBalance.allowance}</p>
+                    <p className="text-sm text-gray-500">{t('limit')}</p>
+                </div>
+                <div>
+                    <p className="text-3xl font-extrabold text-red-600">{annualBalance.taken}</p>
+                    <p className="text-sm text-gray-500">{t('used')}</p>
+                </div>
+                <div>
+                    <p className="text-3xl font-extrabold text-green-600">{annualBalance.remaining}</p>
+                    <p className="text-sm text-gray-500">{t('remaining')}</p>
+                </div>
+            </div>
+        </div>
+      </div>
+      
+      {/* Card 3: Annual Balance Visual */}
+      <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col items-center justify-center text-center">
+          <div className="flex items-center space-x-3 mb-4">
+            <FaChartPie className="text-2xl text-indigo-600" />
+            <h3 className="text-xl font-bold text-gray-800">{t('annual-leave-overview')}</h3>
+          </div>
+          <div className="relative w-48 h-48">
+              <svg className="w-full h-full" viewBox="0 0 36 36"  transform="rotate(-90)">
+                  <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="#e6e6e6"
+                      strokeWidth="3"
+                  />
+                  <path
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke={annualUsedPercentage > 85 ? "#dc2626" : "#10b981"} // Red if over 85%, else green
+                      strokeWidth="3"
+                      strokeDasharray={`${annualUsedPercentage}, 100`}
+                      strokeLinecap="round"
+                  />
+              </svg>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <p className="text-4xl font-extrabold text-green-600">{annualBalance.remaining}</p>
+                <p className="text-gray-500">Days Left</p>
+              </div>
+          </div>
+          <p className="mt-4 text-gray-600 max-w-xs">
+              You have used <span className="font-bold text-red-600">{annualBalance.taken}</span> out of your{" "}
+              <span className="font-bold">{annualBalance.allowance}</span> total annual paid leave days.
+          </p>
+      </div>
+
+    </div>
+  );
+};
+
+export default LeaveBalanceIndicatorUI;
